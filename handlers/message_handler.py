@@ -17,7 +17,7 @@ event_logger = logging.getLogger('event_logger')
 message_logger.propagate = False
 event_logger.propagate = False
 
-PRE_WHITELISTED_USERNAMES = [l.stripe() for l in open("secrets/pre_whitelisted_users.txt").read().split("\n")]
+PRE_WHITELISTED_USERNAMES = [l.strip() for l in open("secrets/pre_whitelisted_users.txt").read().split("\n")]
 
 def setup_logging(handlers):
     """Set up logging with the provided handlers"""
@@ -30,21 +30,18 @@ def setup_logging(handlers):
     event_logger.setLevel(logging.INFO)
 
 class MessageDB:
-    def __init__(self, dbname: str = "telegram_messages.db"):
+    def __init__(self, dbname: str = "secrets/telegram_messages.db"):
         self.dbname = dbname
         self.logger = logging.getLogger('message_logger')
         self.conn = sqlite3.connect(self.dbname, check_same_thread=False)
-        self.setup_db()
+        if not os.path.exists(self.dbname):
+            self.setup_db()
 
     def setup_db(self):
         # Log database initialization
         self.logger.info(f"Initializing database: {self.dbname}")
         
         try:
-            # Drop existing table if it exists
-            drop_table_query = "DROP TABLE IF EXISTS messages"
-            self.conn.execute(drop_table_query)
-            
             create_table_query = """
                 CREATE TABLE IF NOT EXISTS messages (
                     message_id INTEGER PRIMARY KEY,
