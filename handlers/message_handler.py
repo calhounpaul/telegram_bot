@@ -17,7 +17,28 @@ event_logger = logging.getLogger('event_logger')
 message_logger.propagate = False
 event_logger.propagate = False
 
-PRE_WHITELISTED_USERNAMES = [l.strip() for l in open("secrets/pre_whitelisted_users.txt").read().split("\n")]
+PRE_WHITELISTED_USERNAMES = [l.strip() for l in open("secrets/pre_whitelisted_users.txt").read().split("\n") if l.strip()]
+
+WHITELIST_FILE = "secrets/whitelist.json"
+
+def load_whitelist() -> dict:
+    """Load the whitelist JSON file or return a default structure."""
+    if os.path.exists(WHITELIST_FILE):
+        try:
+            with open(WHITELIST_FILE, "r") as f:
+                return json.load(f)
+        except Exception as e:
+            message_logger.error(f"Error loading whitelist file: {e}")
+    # Default structure
+    return {"users": [], "groups": []}
+
+def save_whitelist(whitelist: dict) -> None:
+    """Save the whitelist dictionary back to the JSON file."""
+    try:
+        with open(WHITELIST_FILE, "w") as f:
+            json.dump(whitelist, f, indent=4)
+    except Exception as e:
+        message_logger.error(f"Error saving whitelist file: {e}")
 
 def setup_logging(handlers):
     """Set up logging with the provided handlers"""
@@ -34,8 +55,7 @@ class MessageDB:
         self.dbname = dbname
         self.logger = logging.getLogger('message_logger')
         self.conn = sqlite3.connect(self.dbname, check_same_thread=False)
-        if not os.path.exists(self.dbname):
-            self.setup_db()
+        self.setup_db()
 
     def setup_db(self):
         # Log database initialization
@@ -218,20 +238,84 @@ async def handle_art_command(update: Update, context: ContextTypes.DEFAULT_TYPE)
 message_db = MessageDB()
 
 def is_authorized(user, chat) -> bool:
-    """Check if a user or chat is authorized to use the bot"""
-    WHITELIST_FILE = "secrets/whitelist.json"
+    """
+    Check if a user or chat is authorized to use the bot.
+    If a user was whitelisted by username, remove that entry and add their ID.
+    """
+    whitelist = load_whitelist()
     
-    if os.path.exists(WHITELIST_FILE):
-        with open(WHITELIST_FILE, 'r') as f:
-            whitelist = json.load(f)
-    else:
-        whitelist = {"users": [], "groups": []}
+    # First, allow if the user’s Telegram ID (as a string) is already whitelisted.
+    if str(user.id) in whitelist.get("users", []):
+        return True
 
-    return (
-        str(user.id) in whitelist["users"] or 
-        user.username in PRE_WHITELISTED_USERNAMES or
-        (chat and str(chat.id) in whitelist["groups"])
-    )
+    # If the user’s username is in the whitelist (i.e. added via /whitelist),
+    # update the whitelist: remove the username and add the Telegram ID.
+    if user.username and user.username in whitelist.get("users", []):
+        whitelist["users"].remove(user.username)
+        if str(user.id) not in whitelist["users"]:
+            whitelist["users"].append(str(user.id))
+        save_whitelist(whitelist)
+        return True
+
+    # Allow pre-whitelisted users (from pre_whitelisted_users.txt)
+    if user.username and user.username in PRE_WHITELISTED_USERNAMES:
+        return True
+
+    # Allow chats if their id is whitelisted in groups.
+    if chat and str(chat.id) in whitelist.get("groups", []):
+        return True
+
+    return False
+
+async def handle_whitelist_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """
+    Handles the /whitelist command.
+    
+    Usage:
+        /whitelist username1 username2 ...
+    
+    Only core users (pre-whitelisted or already authorized) may add new usernames.
+    The command accepts usernames with or without a leading "@".
+    """
+    user = update.effective_user
+    # Only allow this command if the issuing user is a “core” user:
+    # (i.e. pre-whitelisted or already in the whitelist by ID)
+    current_whitelist = load_whitelist()
+    if not (
+        (user.username and user.username in PRE_WHITELISTED_USERNAMES) or 
+        (str(user.id) in current_whitelist.get("users", []))
+    ):
+        reply_message = await update.message.reply_text("You are not authorized to use this command.")
+        await store_bot_message(reply_message)
+        return
+
+    # Parse command arguments (everything after "/whitelist")
+    args = update.message.text.split()[1:]
+    if not args:
+        reply_message = await update.message.reply_text("Usage: /whitelist username1 username2 ...")
+        await store_bot_message(reply_message)
+        return
+
+    # Remove any leading '@' characters from the usernames.
+    new_usernames = [arg.lstrip('@') for arg in args]
+
+    # Reload whitelist (to be safe) and add each new username if not already present.
+    whitelist = load_whitelist()
+    added = []
+    for uname in new_usernames:
+        # Avoid adding if the entry already appears (either as username or as an id)
+        if uname not in whitelist.get("users", []) and not uname.isdigit():
+            whitelist["users"].append(uname)
+            added.append(uname)
+
+    save_whitelist(whitelist)
+
+    if added:
+        reply_message = await update.message.reply_text(f"Whitelisted usernames added: {', '.join(added)}")
+    else:
+        reply_message = await update.message.reply_text("No new usernames were added to the whitelist.")
+    await store_bot_message(reply_message)
+
 
 async def handle_px_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Handle /px command"""
@@ -312,6 +396,41 @@ async def store_bot_message(message) -> None:
     """Store a bot message in the database"""
     loop = asyncio.get_event_loop()
     await loop.run_in_executor(None, message_db.store_message, message)
+
+async def handle_whitelist_group_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """
+    Handles the /whitelist_group command to whitelist the current group chat.
+    When executed in a group or supergroup, it adds the group's ID to the whitelist,
+    thereby allowing all members in the group to use the bot.
+    """
+    chat = update.effective_chat
+    if not chat:
+        return
+
+    # This command is only valid in a group or supergroup.
+    if chat.type not in ["group", "supergroup"]:
+        reply_message = await update.message.reply_text("This command can only be used in a group chat.")
+        await store_bot_message(reply_message)
+        return
+
+    whitelist = load_whitelist()
+    group_id_str = str(chat.id)
+
+    # Check if the group is already whitelisted.
+    if group_id_str in whitelist.get("groups", []):
+        reply_message = await update.message.reply_text("This group is already whitelisted.")
+        await store_bot_message(reply_message)
+        return
+
+    # Add the group id to the whitelist.
+    whitelist.setdefault("groups", []).append(group_id_str)
+    save_whitelist(whitelist)
+
+    reply_message = await update.message.reply_text(
+        "Group has been successfully whitelisted. All members in this group can now use the bot."
+    )
+    await store_bot_message(reply_message)
+
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """

@@ -2,8 +2,10 @@
 import logging
 from logging.handlers import RotatingFileHandler
 import os
-from telegram.ext import ApplicationBuilder, MessageHandler, filters
 from handlers.message_handler import handle_message
+from handlers import setup_logging
+from telegram.ext import ApplicationBuilder, MessageHandler, CommandHandler, filters
+from handlers.message_handler import handle_message, handle_whitelist_command, handle_whitelist_group_command
 from handlers import setup_logging
 
 class BotLogger:
@@ -84,14 +86,20 @@ def main():
         raise
 
     logger.info("Initializing bot application...")
-    
+
     # Initialize bot with custom event logging
     application = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
-    
+
     # Set up logging handlers in message handler
     setup_logging.setup_logging(bot_logger.handlers)
     
-    # Add message handler
+    # Add the whitelist command handler for individual users.
+    application.add_handler(CommandHandler("whitelist", handle_whitelist_command))
+    
+    # Add the new whitelist_group command handler.
+    application.add_handler(CommandHandler("whitelist_group", handle_whitelist_group_command))
+    
+    # Then add the generic message handler (for other commands and messages)
     application.add_handler(MessageHandler(filters.ALL, handle_message))
     
     logger.info("Bot initialized successfully. Starting polling...")
