@@ -66,13 +66,6 @@ This Telegram bot is a versatile assistant that provides various functionalities
      - `secrets/perplexity_api_key.txt`: Paste your Perplexity API key here.
      - `secrets/hf_api_key.txt`: Paste your Hugging Face API key here.
    - Add a `secrets/pre_whitelisted_users.txt` file with a list of usernames (one per line) that are pre-authorized to use the bot.
-   - Add a `secrets/whitelist.json` file to manage authorized users and groups:
-     ```json
-     {
-       "users": ["user_id_1", "user_id_2"],
-       "groups": ["group_id_1", "group_id_2"]
-     }
-     ```
 
 4. **Run the Bot**:
    ```bash
@@ -101,5 +94,4 @@ telegram-bot/
 │   ├── pre_whitelisted_users.txt
 │   └── whitelist.json
 ├── logs/                      # Logs directory (created automatically)
-│   ├── messages.log           # Logs of all messages
-
+│   ├── messages.log
