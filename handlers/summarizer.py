@@ -3,10 +3,10 @@ from typing import List
 from openai import OpenAI
 
 # Load the Hyperbolic API key from file.
-#HYPERBOLIC_API_KEY_FILE = "secrets/hyperbolic_api_key.txt"
-#HYPERBOLIC_ENDPOINT = "https://api.hyperbolic.xyz/v1"
-API_KEY_FILE = "secrets/hf_api_key.txt"
-ENDPOINT = "https://api-inference.huggingface.co/v1/"
+API_KEY_FILE = "secrets/hyperbolic_api_key.txt"
+ENDPOINT = "https://api.hyperbolic.xyz/v1/"
+#API_KEY_FILE = "secrets/hf_api_key.txt"
+#ENDPOINT = "https://api-inference.huggingface.co/v1/"
 MODEL_NAME = "meta-llama/Llama-3.3-70B-Instruct"
 
 with open(API_KEY_FILE, "r") as f:
