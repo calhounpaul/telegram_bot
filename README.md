@@ -22,14 +22,14 @@ This Telegram bot is a versatile assistant that provides various functionalities
    - **Command**: `/research <query>`
    - **Description**: Answers user queries using the Perplexity API.
    - **Example**: `/research What is the capital of France?`
-   - **Output**: Sends a detailed response to the query, including citations if available.
+   - **Output**: Sends a summary of the research along with a txt file containing a detailed response to the query with citations.
 
 ### 4. **Message Logging**
-   - **Description**: Logs all messages (text, photos, documents) in a SQLite database for future reference and analysis.
+   - **Description**: Logs all messages' text in a SQLite database for future reference and analysis. Attachments will be added soon.
    - **Logs**: Messages are stored with details such as message ID, chat ID, user ID, username, message type, content, and timestamp.
 
 ### 5. **Authorization**
-   - **Description**: Restricts bot usage to authorized users and groups. Users and groups can be whitelisted via a JSON file (`whitelist.json`).
+   - **Description**: Restricts bot usage to authorized users and groups.
 
 ---
 
@@ -40,22 +40,17 @@ This Telegram bot is a versatile assistant that provides various functionalities
 2. **Telegram Bot Token**: Create a bot using [BotFather](https://core.telegram.org/bots#botfather) and obtain the API token.
 3. **API Keys**:
    - **Hyperbolic API Key**: For art generation.
-   - **Perplexity API Key**: For query responses.
+   - **Perplexity API Key**: For research responses.
    - **Hugging Face API Key**: For chat summarization.
 
 ### Installation
 1. **Clone the Repository**:
    ```bash
-   git clone https://github.com/your-repo/telegram-bot.git
+   git clone https://github.com/calhounpaul/telegram_bot
    cd telegram-bot
    ```
 
-2. **Install Dependencies**:
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-3. **Set Up Secrets**:
+2. **Set Up Secrets**:
    - Create a `secrets` directory in the root of the project:
      ```bash
      mkdir secrets
@@ -66,17 +61,27 @@ This Telegram bot is a versatile assistant that provides various functionalities
      - `secrets/perplexity_api_key.txt`: Paste your Perplexity API key here.
      - `secrets/hf_api_key.txt`: Paste your Hugging Face API key here.
    - Add a `secrets/pre_whitelisted_users.txt` file with a list of usernames (one per line) that are pre-authorized to use the bot.
-   - Add a `secrets/whitelist.json` file to manage authorized users and groups:
+   - The bot will use a `secrets/whitelist.json` file to manage newly authorized users and groups:
      ```json
      {
        "users": ["user_id_1", "user_id_2"],
        "groups": ["group_id_1", "group_id_2"]
      }
      ```
+   - Optionally, use `secrets/research_prefix_personality.txt` to add a prefix to each Perplexity.ai query.
 
-4. **Run the Bot**:
+3. 
+   **Run the Bot in Tmux**:
    ```bash
-   python bot.py
+   bash run.sh
+   ```
+   **Or Install it as a Service**:
+   ```bash
+   bash run.sh --keepalive
+   ```
+   **Uninstall With**:
+   ```bash
+   bash run.sh --uninstall
    ```
 
 ---
@@ -99,7 +104,10 @@ telegram-bot/
 │   ├── perplexity_api_key.txt
 │   ├── hf_api_key.txt
 │   ├── pre_whitelisted_users.txt
+│   ├── telegram_messages.db
+│   ├── research_prefix_personality.txt
 │   └── whitelist.json
 ├── logs/                      # Logs directory (created automatically)
+│   ├── errors.log
+│   ├── events.log
 │   ├── messages.log           # Logs of all messages
-
