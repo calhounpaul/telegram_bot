@@ -7,6 +7,7 @@ import datetime
 from typing import Optional, List
 import os
 import json
+from .summarizer import summarize_research
 
 # Initialize loggers
 message_logger = logging.getLogger('message_logger')
@@ -317,32 +318,45 @@ async def handle_whitelist_command(update: Update, context: ContextTypes.DEFAULT
 
 
 async def handle_research_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Handle /px command"""
+    """Handle /research command with file attachment"""
+    from io import BytesIO
+    from telegram import InputFile
     from .perplexity_api import get_perplexity_response
-    
+
+    # Existing authorization and query handling
     if not is_authorized(update.effective_user, update.effective_chat):
-        reply_message = await update.message.reply_text("You are not authorized to use this bot.")
+        reply_message = await update.message.reply_text("Unauthorized access attempt blocked")
         await store_bot_message(reply_message)
         return
 
-    # Extract query (everything after /research )
     query = update.message.text[10:].strip()
     if not query:
-        reply_message = await update.message.reply_text("Please provide a query after /px.")
+        reply_message = await update.message.reply_text("Query syntax: /research <question>")
         await store_bot_message(reply_message)
         return
 
     try:
-        processing_msg = await update.message.reply_text("Processing your query...")
+        processing_msg = await update.message.reply_text("Analyzing request...")
         loop = asyncio.get_event_loop()
-        reply = await loop.run_in_executor(None, get_perplexity_response, query)
+        reply_full = await loop.run_in_executor(None, get_perplexity_response, query)
+        reply_summary = await loop.run_in_executor(None, summarize_research, reply_full)
         await processing_msg.delete()
-        reply_message = await update.message.reply_text(reply)
-        await store_bot_message(reply_message)
+
+        # Create in-memory text file
+        text_buffer = BytesIO(reply_full.encode('utf-8'))
+        
+        # Send document with metadata
+        await context.bot.send_document(
+            chat_id=update.effective_chat.id,
+            document=InputFile(text_buffer, filename='research_report.txt'),
+            caption="Research summary:\n" + reply_summary + "\n\n(Full analysis + citations attached)",
+        )
+
     except Exception as e:
-        event_logger.error(f"Error in perplexity API call: {e}")
-        error_message = await update.message.reply_text("An error occurred while processing your request.")
+        event_logger.error(f"Processing failure: {str(e)}")
+        error_message = await update.message.reply_text("Analysis system error")
         await store_bot_message(error_message)
+
 
 async def handle_summarize_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Handle /summarize command"""

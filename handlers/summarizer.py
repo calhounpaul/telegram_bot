@@ -36,7 +36,7 @@ def summarize_chat(chat_messages: List[str]) -> str:
     
     # Build the prompt with the required instructions.
     prompt = (
-        f"summarize the following chat:\n####CHAT_BEGIN####{chat_text}\n####CHAT_END####\n"
+        f"Summarize the following chat:\n####CHAT_BEGIN####{chat_text}\n####CHAT_END####\n"
         "Your summary should be no larger than two paragraphs of 4 sentences each."
     )
     
@@ -52,6 +52,31 @@ def summarize_chat(chat_messages: List[str]) -> str:
     except Exception as e:
         logging.error(f"Error in summarizing chat: {e}")
         summary = "An error occurred while summarizing the chat."
+    
+    return summary
+
+def summarize_research(research_text: str) -> str:
+    """
+    Summarizes a /research return by instructing the LLM to produce a summary.
+    """
+    # Build the prompt with the required instructions.
+    prompt = (
+        f"Summarize the following information:\n####RESEARCH_BEGIN####{research_text}\n####RESEARCH_END####\n"
+        "Your summary should be no larger than one paragraph of 3 sentences."
+    )
+    
+    try:
+        response = llama_client.chat.completions.create(
+            model=MODEL_NAME,
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=512,       # Adjust as needed based on expected summary length.
+            temperature=0.7,
+            top_p=0.95,
+        )
+        summary = response.choices[0].message.content
+    except Exception as e:
+        logging.error(f"Error in summarizing research: {e}")
+        summary = "An error occurred while summarizing the research."
     
     return summary
 
