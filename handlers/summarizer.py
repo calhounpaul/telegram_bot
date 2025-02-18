@@ -8,6 +8,8 @@ ENDPOINT = "https://api.hyperbolic.xyz/v1/"
 #API_KEY_FILE = "secrets/hf_api_key.txt"
 #ENDPOINT = "https://api-inference.huggingface.co/v1/"
 MODEL_NAME = "meta-llama/Llama-3.3-70B-Instruct"
+MAX_CHARS = 100*(10**3)*4
+MSG_SEPARATOR = "\n---New Message---\n"
 
 with open(API_KEY_FILE, "r") as f:
     HYPERBOLIC_API_KEY = f.read().strip()
@@ -30,11 +32,11 @@ def summarize_chat(chat_messages: List[str]) -> str:
         str: The generated summary, or an error message if something goes wrong.
     """
     # Concatenate all messages into a single block of text.
-    chat_text = "\n".join(chat_messages)
+    chat_text = MSG_SEPARATOR.join(chat_messages)[-MAX_CHARS:]
     
     # Build the prompt with the required instructions.
     prompt = (
-        f"summarize the following chat:\nCHAT_BEGIN{chat_text}\nCHAT_END\n"
+        f"summarize the following chat:\n####CHAT_BEGIN####{chat_text}\n####CHAT_END####\n"
         "Your summary should be no larger than two paragraphs of 4 sentences each."
     )
     

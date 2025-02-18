@@ -19,9 +19,9 @@ This Telegram bot is a versatile assistant that provides various functionalities
    - **Output**: Provides a concise summary of the chat messages in the specified time frame.
 
 ### 3. **Query Responses**
-   - **Command**: `/px <query>`
+   - **Command**: `/research <query>`
    - **Description**: Answers user queries using the Perplexity API.
-   - **Example**: `/px What is the capital of France?`
+   - **Example**: `/research What is the capital of France?`
    - **Output**: Sends a detailed response to the query, including citations if available.
 
 ### 4. **Message Logging**
@@ -66,6 +66,13 @@ This Telegram bot is a versatile assistant that provides various functionalities
      - `secrets/perplexity_api_key.txt`: Paste your Perplexity API key here.
      - `secrets/hf_api_key.txt`: Paste your Hugging Face API key here.
    - Add a `secrets/pre_whitelisted_users.txt` file with a list of usernames (one per line) that are pre-authorized to use the bot.
+   - Add a `secrets/whitelist.json` file to manage authorized users and groups:
+     ```json
+     {
+       "users": ["user_id_1", "user_id_2"],
+       "groups": ["group_id_1", "group_id_2"]
+     }
+     ```
 
 4. **Run the Bot**:
    ```bash
@@ -94,4 +101,5 @@ telegram-bot/
 │   ├── pre_whitelisted_users.txt
 │   └── whitelist.json
 ├── logs/                      # Logs directory (created automatically)
-│   ├── messages.log
+│   ├── messages.log           # Logs of all messages
+

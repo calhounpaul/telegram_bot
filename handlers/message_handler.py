@@ -1,4 +1,3 @@
-
 import sqlite3
 import logging
 import asyncio
@@ -159,7 +158,7 @@ class MessageDB:
             self.logger.info(f"Fetching messages for chat {chat_id} since timestamp {timestamp}")
             
             query = """
-                SELECT username, content
+                SELECT username, date, content
                 FROM messages
                 WHERE chat_id = ? 
                 AND date >= ?
@@ -172,10 +171,10 @@ class MessageDB:
             
             # Format messages as "Username: Message"
             formatted_messages = []
-            for username, content in messages:
+            for username, date, content in messages:
                 # Use 'Anonymous' if username is None
                 display_name = username if username else 'Anonymous'
-                formatted_messages.append(f"{display_name}: {content}")
+                formatted_messages.append(f"{display_name} ({datetime.datetime.fromtimestamp(date)}): {content}")
             
             self.logger.info(f"Retrieved {len(formatted_messages)} messages")
             return formatted_messages
@@ -317,7 +316,7 @@ async def handle_whitelist_command(update: Update, context: ContextTypes.DEFAULT
     await store_bot_message(reply_message)
 
 
-async def handle_px_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def handle_research_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Handle /px command"""
     from .perplexity_api import get_perplexity_response
     
@@ -326,8 +325,8 @@ async def handle_px_command(update: Update, context: ContextTypes.DEFAULT_TYPE) 
         await store_bot_message(reply_message)
         return
 
-    # Extract query (everything after /px )
-    query = update.message.text[4:].strip()
+    # Extract query (everything after /research )
+    query = update.message.text[10:].strip()
     if not query:
         reply_message = await update.message.reply_text("Please provide a query after /px.")
         await store_bot_message(reply_message)
@@ -452,8 +451,8 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     # Check for commands
     text = update.message.text.strip()
     
-    if text.startswith('/px '):
-        await handle_px_command(update, context)
+    if text.startswith('/research'):
+        await handle_research_command(update, context)
     elif text.startswith('/summarize'):
         await handle_summarize_command(update, context)
     elif text.startswith('/art'):

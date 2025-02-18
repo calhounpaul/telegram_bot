@@ -16,7 +16,6 @@ then
     sudo apt-get install tmux
 fi
 
-
 if [ -z "$(tmux list-sessions | grep $TMUX_SESSION)" ]; then
     echo "Starting tmux session $TMUX_SESSION (kill with command \"tmux kill-session -t $TMUX_SESSION\")"
     tmux new-session -d -s $TMUX_SESSION \
