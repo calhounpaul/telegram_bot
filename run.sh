@@ -20,6 +20,7 @@ fi
 if [ "$1" == "--keepalive" ]; then
     echo "Installing/updating systemd service..."
     
+    chmod +x "$SCRIPT_DIR/$(basename "$0")"
     # Create virtual environment and install dependencies if needed.
     if [ ! -d "$SCRIPT_DIR/venv" ]; then
         python3 -m venv "$SCRIPT_DIR/venv"
