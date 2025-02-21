@@ -87,7 +87,7 @@ fi
 # Default behavior (no flag): install venv/dependencies and launch bot in a tmux session.
 if [ ! -d "$SCRIPT_DIR/venv" ]; then
     python3 -m venv "$SCRIPT_DIR/venv"
-fi
+firsc
 if [ ! -f "$FLAGFILE_INSTALL" ]; then
     "$SCRIPT_DIR/venv/bin/python3" -m pip install --upgrade pip
     "$SCRIPT_DIR/venv/bin/python3" -m pip install -U -r "$SCRIPT_DIR/requirements.txt"

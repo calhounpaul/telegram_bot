@@ -5,6 +5,7 @@ from handlers.message_handler import handle_message
 from handlers import setup_logging
 from telegram.ext import ApplicationBuilder, MessageHandler, CommandHandler, filters
 from handlers.message_handler import handle_message, handle_whitelist_command, handle_whitelist_group_command
+from handlers.criteria_handler import handle_criteria_check
 from handlers import setup_logging
 from dotenv import load_dotenv
 
@@ -96,8 +97,10 @@ def main():
     # Add the new whitelist_group command handler.
     application.add_handler(CommandHandler(WHITELIST_GROUP_COMMAND, handle_whitelist_group_command))
     
-    # Then add the generic message handler (for other commands and messages)
-    application.add_handler(MessageHandler(filters.ALL, handle_message))
+    application.add_handler(MessageHandler(filters.ALL, handle_message), group=1)
+
+    # Add the criteria-check handler so it processes after handle_message.
+    application.add_handler(MessageHandler(filters.ALL, handle_criteria_check), group=2)
     
     logger.info("Bot initialized successfully. Starting polling...")
     
