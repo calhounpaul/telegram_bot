@@ -1,4 +1,6 @@
-secrets/
+.env
+telegram_messages.db
+whitelist.json
 __pycache__/
 handlers/__pycache__/
 venv/

@@ -6,6 +6,13 @@ from handlers import setup_logging
 from telegram.ext import ApplicationBuilder, MessageHandler, CommandHandler, filters
 from handlers.message_handler import handle_message, handle_whitelist_command, handle_whitelist_group_command
 from handlers import setup_logging
+from dotenv import load_dotenv
+
+load_dotenv()
+
+TELEGRAM_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+WHITELIST_USER_COMMAND=os.getenv("WHITELIST_USER_COMMAND")
+WHITELIST_GROUP_COMMAND=os.getenv("WHITELIST_GROUP_COMMAND")
 
 class BotLogger:
     def __init__(self, log_dir="logs"):
@@ -74,15 +81,6 @@ def main():
     # Initialize logger
     bot_logger = BotLogger()
     logger = bot_logger.logger
-    
-    # Load bot token
-    try:
-        TELEGRAM_TOKEN_FILE = "secrets/telegram_api_key.txt"
-        with open(TELEGRAM_TOKEN_FILE, "r") as f:
-            TELEGRAM_TOKEN = f.read().strip()
-    except Exception as e:
-        logger.error(f"Failed to load Telegram token: {e}")
-        raise
 
     logger.info("Initializing bot application...")
 
@@ -93,10 +91,10 @@ def main():
     setup_logging.setup_logging(bot_logger.handlers)
     
     # Add the whitelist command handler for individual users.
-    application.add_handler(CommandHandler("whitelist", handle_whitelist_command))
+    application.add_handler(CommandHandler(WHITELIST_USER_COMMAND, handle_whitelist_command))
     
     # Add the new whitelist_group command handler.
-    application.add_handler(CommandHandler("whitelist_group", handle_whitelist_group_command))
+    application.add_handler(CommandHandler(WHITELIST_GROUP_COMMAND, handle_whitelist_group_command))
     
     # Then add the generic message handler (for other commands and messages)
     application.add_handler(MessageHandler(filters.ALL, handle_message))

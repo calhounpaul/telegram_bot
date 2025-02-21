@@ -99,4 +99,5 @@ fi
 if [ -z "$(tmux list-sessions | grep $TMUX_SESSION)" ]; then
     echo "Starting tmux session $TMUX_SESSION (kill with: tmux kill-session -t $TMUX_SESSION)"
     tmux new-session -d -s $TMUX_SESSION 'venv/bin/python3 bot.py && exit'
+    #venv/bin/python3 bot.py
 fi

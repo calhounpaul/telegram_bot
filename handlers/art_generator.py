@@ -3,12 +3,18 @@ import logging
 import base64
 import json
 from typing import Optional
+import os
+from dotenv import load_dotenv
 
 # Initialize logger
 art_logger = logging.getLogger('art_logger')
 
-with open("secrets/hyperbolic_api_key.txt", "r") as f:
-    HYPERBOLIC_API_KEY = f.read().strip()
+HYPERBOLIC_API_KEY = os.getenv("HYPERBOLIC_API_KEY")
+ENDPOINT = os.getenv("HYPERBOLIC_ENDPOINT")
+ART_MODEL_NAME = os.getenv("ART_MODEL_NAME")
+
+load_dotenv()
+
 
 def generate_art(prompt: str) -> Optional[bytes]:
     """
@@ -22,13 +28,13 @@ def generate_art(prompt: str) -> Optional[bytes]:
     """
     print("Generating art...")
     try:
-        url = "https://api.hyperbolic.xyz/v1/image/generation"
+        url = ENDPOINT + "image/generation"
         headers = {
             "Content-Type": "application/json",
             "Authorization": f"Bearer {HYPERBOLIC_API_KEY}"
         }
         data = {
-            "model_name": "FLUX.1-dev",
+            "model_name": ART_MODEL_NAME,
             "prompt": prompt,
             "steps": 30,
             "cfg_scale": 5,

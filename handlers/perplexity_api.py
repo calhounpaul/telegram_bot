@@ -2,17 +2,9 @@ import logging
 from openai import OpenAI
 import os
 
-PX_API_KEY_FILE = "secrets/perplexity_api_key.txt"
-PX_ENDPOINT_URL = "https://api.perplexity.ai"
-
-with open(PX_API_KEY_FILE, "r") as f:
-    PX_API_KEY = f.read().strip()
-
-PPX_QUERY_PREPROMPT = ""
-
-if "research_prefix_personality.txt" in os.listdir("secrets"):
-    with open("secrets/research_prefix_personality.txt", "r") as f:
-        PPX_QUERY_PREPROMPT = f.read().strip()
+PX_ENDPOINT_URL = os.getenv("PERPLEXITY_ENDPOINT")
+PX_API_KEY = os.getenv("PERPLEXITY_API_KEY")
+PPX_QUERY_PREPROMPT = os.getenv("RESEARCH_QUERY_PREFIX")
 
 px_client = OpenAI(base_url=PX_ENDPOINT_URL, api_key=PX_API_KEY)
 

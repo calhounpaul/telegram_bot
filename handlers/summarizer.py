@@ -1,18 +1,17 @@
 import logging
 from typing import List
 from openai import OpenAI
+from dotenv import load_dotenv
+import os
 
-# Load the Hyperbolic API key from file.
-API_KEY_FILE = "secrets/hyperbolic_api_key.txt"
-ENDPOINT = "https://api.hyperbolic.xyz/v1/"
-#API_KEY_FILE = "secrets/hf_api_key.txt"
-#ENDPOINT = "https://api-inference.huggingface.co/v1/"
-MODEL_NAME = "meta-llama/Llama-3.3-70B-Instruct"
+load_dotenv()
+
+HYPERBOLIC_API_KEY = os.getenv("HYPERBOLIC_API_KEY")
+
+ENDPOINT = os.getenv("HYPERBOLIC_ENDPOINT")
+MODEL_NAME = os.getenv("MODEL_NAME")
 MAX_CHARS = 100*(10**3)*4
-MSG_SEPARATOR = "\n---New Message---\n"
-
-with open(API_KEY_FILE, "r") as f:
-    HYPERBOLIC_API_KEY = f.read().strip()
+MSG_SEPARATOR = os.getenv("MSG_SEPARATOR")
 
 # Create a client for the Llama 3.3-70B-Instruct model via Hyperbolic.
 llama_client = OpenAI(base_url=ENDPOINT, api_key=HYPERBOLIC_API_KEY)

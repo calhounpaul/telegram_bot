@@ -8,6 +8,10 @@ from typing import Optional, List
 import os
 import json
 from .summarizer import summarize_research
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
 
 # Initialize loggers
 message_logger = logging.getLogger('message_logger')
@@ -17,9 +21,15 @@ event_logger = logging.getLogger('event_logger')
 message_logger.propagate = False
 event_logger.propagate = False
 
-PRE_WHITELISTED_USERNAMES = [l.strip() for l in open("secrets/pre_whitelisted_users.txt").read().split("\n") if l.strip()]
+PRE_WHITELISTED_USERNAMES = os.getenv("PRE_WHITELISTED_USERS", "").split(",")
 
-WHITELIST_FILE = "secrets/whitelist.json"
+WHITELIST_FILE = "whitelist.json"
+SUMMARIZE_RESEARCH=os.getenv("SUMMARIZE_RESEARCH")
+RESEARCH_COMMAND = "/" + os.getenv("RESEARCH_COMMAND")
+ART_COMMAND = "/" + os.getenv("ART_COMMAND")
+SUMMARIZE_COMMAND = "/" + os.getenv("SUMMARIZE_COMMAND")
+WHITELIST_USER_COMMAND="/" + os.getenv("WHITELIST_USER_COMMAND")
+WHITELIST_GROUP_COMMAND="/" + os.getenv("WHITELIST_GROUP_COMMAND")
 
 def load_whitelist() -> dict:
     """Load the whitelist JSON file or return a default structure."""
@@ -51,7 +61,7 @@ def setup_logging(handlers):
     event_logger.setLevel(logging.INFO)
 
 class MessageDB:
-    def __init__(self, dbname: str = "secrets/telegram_messages.db"):
+    def __init__(self, dbname: str = "telegram_messages.db"):
         self.dbname = dbname
         self.logger = logging.getLogger('message_logger')
         self.conn = sqlite3.connect(self.dbname, check_same_thread=False)
@@ -191,11 +201,10 @@ async def handle_art_command(update: Update, context: ContextTypes.DEFAULT_TYPE)
         await store_bot_message(reply_message)
         return
 
-    # Extract prompt (everything after /art)
-    prompt = update.message.text[5:].strip()
+    prompt = update.message.text[len(ART_COMMAND):].strip()
     if not prompt:
         reply_message = await update.message.reply_text(
-            "Please provide a prompt after /art command. Example: /art sunset over mountains"
+            "Please provide a prompt after "+ART_COMMAND+" command. Example: "+ART_COMMAND+" sunset over mountains"
         )
         await store_bot_message(reply_message)
         return
@@ -292,7 +301,7 @@ async def handle_whitelist_command(update: Update, context: ContextTypes.DEFAULT
     # Parse command arguments (everything after "/whitelist")
     args = update.message.text.split()[1:]
     if not args:
-        reply_message = await update.message.reply_text("Usage: /whitelist username1 username2 ...")
+        reply_message = await update.message.reply_text("Usage: " +WHITELIST_USER_COMMAND+ " username1 username2 ...")
         await store_bot_message(reply_message)
         return
 
@@ -331,7 +340,14 @@ async def handle_research_command(update: Update, context: ContextTypes.DEFAULT_
 
     query = update.message.text[10:].strip()
     if not query:
-        reply_message = await update.message.reply_text("Query syntax: /research <question>")
+        reply_message = await update.message.reply_text("Query syntax: " + RESEARCH_COMMAND + " <question>")
+        await store_bot_message(reply_message)
+        return
+
+    
+    query = update.message.text[len(RESEARCH_COMMAND):].strip()
+    if not query:
+        reply_message = await update.message.reply_text("Query syntax: /prof <question>")
         await store_bot_message(reply_message)
         return
 
@@ -339,18 +355,22 @@ async def handle_research_command(update: Update, context: ContextTypes.DEFAULT_
         processing_msg = await update.message.reply_text("Analyzing request...")
         loop = asyncio.get_event_loop()
         reply_full = await loop.run_in_executor(None, get_perplexity_response, query)
-        reply_summary = await loop.run_in_executor(None, summarize_research, reply_full)
-        await processing_msg.delete()
-
-        # Create in-memory text file
-        text_buffer = BytesIO(reply_full.encode('utf-8'))
-        
-        # Send document with metadata
-        await context.bot.send_document(
-            chat_id=update.effective_chat.id,
-            document=InputFile(text_buffer, filename='research_report.txt'),
-            caption="Research summary:\n" + reply_summary + "\n\n(Full analysis + citations attached)",
-        )
+        if SUMMARIZE_RESEARCH==True:
+            print(SUMMARIZE_RESEARCH)
+            reply_summary = await loop.run_in_executor(None, summarize_research, reply_full)
+            await processing_msg.delete()
+            # Create in-memory text file
+            text_buffer = BytesIO(reply_full.encode('utf-8'))
+            
+            # Send document with metadata
+            await context.bot.send_document(
+                chat_id=update.effective_chat.id,
+                document=InputFile(text_buffer, filename='research_report.txt'),
+                caption="Research summary:\n" + reply_summary + "\n\n(Full analysis + citations attached)",
+            )
+        else:
+            await processing_msg.delete()
+            await update.message.reply_text(reply_full)
 
     except Exception as e:
         event_logger.error(f"Processing failure: {str(e)}")
@@ -465,10 +485,10 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     # Check for commands
     text = update.message.text.strip()
     
-    if text.startswith('/research'):
+    if text.startswith(RESEARCH_COMMAND):
         await handle_research_command(update, context)
-    elif text.startswith('/summarize'):
+    elif text.startswith(SUMMARIZE_COMMAND):
         await handle_summarize_command(update, context)
-    elif text.startswith('/art'):
-        event_logger.info(f"Processing /art command: {text[:50]}...")
+    elif text.startswith(ART_COMMAND):
+        event_logger.info(f"Processing "+ART_COMMAND+" command: {text[:50]}...")
         await handle_art_command(update, context)
