@@ -17,6 +17,8 @@ from .message_handler import message_db  # We need DB access to fetch recent mes
 
 load_dotenv()
 
+DISABLE_AUTO_RESPONSES = os.getenv("DISABLE_AUTO_RESPONSES", "0").strip().lower() in ["1", "true"]
+
 # Criteria in natural language, e.g.:
 #   "If the user explicitly requests help or has a question about code, say YES: <question>, else NO."
 CRITERIA_NL = os.getenv("CRITERIA_NL", "If the user explicitly requests help or has a question about code, say 'YES: <question>', else NO.")
@@ -53,7 +55,8 @@ async def handle_criteria_check(update: Update, context: ContextTypes.DEFAULT_TY
          If "YES," the <query> part is used as a prompt to Perplexity, and the bot replies
          with the search result in chat.
     """
-
+    if DISABLE_AUTO_RESPONSES:
+        return
     if not update.message:
         return
 
